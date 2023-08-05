@@ -1,0 +1,71 @@
+import cv2
+import cv2.aruco as aruco
+import numpy as np
+import os
+
+def loadAugImages(path):
+    mylist = os.listdir(path)
+    noOfMarkers = len(myList)
+    print("Total Number of Markers Detected:", noOf Markers)
+    augDics = {}
+    for imgPath in mylist:
+        key = os.path.splitext(imgpath)[0]
+        imgAug = cv2.imread(f'{path}/{imgpath}')
+        augDics[key] = imgAug
+    return augDics    
+    print(myList)
+
+def findArucoMarkers(img, markerSize=6, totalMarkers=250, draw=True):
+    imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    key = getattr(aruco, f'DICT_6X6_250')
+    arucoDict = aruco.Dictionary_get(key)
+    arucoParam = aruco.DetectorParameters_create()
+    bboxs, ids, rejected = aruco.detectMarkers(imgGray, arucoDict, parameters=arucoParam)
+    print(ids)
+    if draw: 
+        aruco.drawDetectedMarkers(img, bboxes)
+
+    return [bboxs, ids]
+def augmentAruco(bboxs, id, imgAug, drawId=True):
+
+    tl = bbox[0][0][0], bbox[0][0][1]
+    tr = bbox[0][1][0], bbox[0][1][1]
+    br = bbox[0][2][0], bbox[0][2][1]
+    bl = bbox[0][3][0], bbox[0][3][1]
+
+    h, w, c =imgAug.shape
+
+    pts1 = np.array([tl, tr, br, bl])
+    pts2 = np.float32([[0, 0][w, 0][w, h][0, h]])
+    matrix, _ =cv2.findHomography(pts2, pts1)
+    imgOut = cv2.warpPerspective(imgAug, matrix, (img.shape[1], img.shape[0]))
+    cv2.fillConvexPoly(img, pts1.astype(int),(0, 0, 0))
+    imgOut = img + imgOut
+
+    if drawId:
+        cv2.putText(imgOut, str(id), yl, cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+    return imgOut
+
+
+
+
+def main():
+    cap = cv2.VideoCapture(0)
+   
+    augDics = loadAugImages("Markers")
+
+    while True:
+        sccuess, img = cap.read()
+        arucofound = findArucoMarkers(img)
+
+        if len(arucofound[0])!=0:
+            for bbox, id in zip(arucofound[0], arucoFound[1]):
+                if int(id) in augDics.keys():
+                   img = augmentAruco(bbox, id, img, augDics[int(id)])
+
+        cv2.imshow("Image", img)
+        cv2.waitKey(1)
+
+
+if _name_ == "main":
+    main()
